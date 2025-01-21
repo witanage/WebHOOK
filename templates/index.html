@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Viewer</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --container-bg: white;
+            --header-bg: #333;
+            --header-text: white;
+            --button-bg: #007BFF;
+            --button-hover: #0056b3;
+            --card-bg: #f9f9f9;
+            --json-bg: #eaeaea;
+            --border-color: #ddd;
+        }
+
+        body.dark-mode {
+            --bg-color: #222;
+            --text-color: #eee;
+            --container-bg: #333;
+            --header-bg: #000;
+            --header-text: white;
+            --button-bg: #444;
+            --button-hover: #666;
+            --card-bg: #555;
+            --json-bg: #444;
+            --border-color: #666;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s;
+        }
+        .header {
+            padding: 15px;
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            text-align: center;
+            font-size: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        select, input, button {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+        button {
+            background-color: var(--button-bg);
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: var(--button-hover);
+        }
+        .requests-container {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+        }
+        .requests-list {
+            width: 35%;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            max-height: 500px;
+            background: var(--card-bg);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .request-details {
+            width: 65%;
+            padding: 10px;
+        }
+        .request-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .request-item:hover, .request-item.active {
+            background-color: var(--json-bg);
+            font-weight: bold;
+        }
+        .details-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .headers-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .headers-table th, .headers-table td {
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: left;
+        }
+        .headers-table th {
+            background-color: var(--json-bg);
+        }
+        pre.pretty-json {
+            background: var(--json-bg);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .toggle-mode {
+            background-color: #222;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            color: white;
+            margin-left: auto;
+        }
+        @media (max-width: 768px) {
+            .requests-container {
+                flex-direction: column;
+            }
+            .requests-list, .request-details {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Webhook Viewer</h1>
+        <button class="toggle-mode" onclick="toggleMode()">🌙 Dark Mode</button>
+    </div>
+    <div class="container">
+        <div class="controls">
+            <label><strong>Select Webhook:</strong></label>
+            <select id="webhookSelect">
+                {% for id in webhook_ids %}
+                    <option value="{{ id }}">{{ id }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="loadWebhooks()">Load</button>
+        </div>
+
+        <div class="controls">
+            <label><strong>Add New Webhook:</strong></label>
+            <input type="text" id="newWebhookId" placeholder="Enter Webhook ID">
+            <button onclick="addWebhook()">Add</button>
+        </div>
+
+        <div class="requests-container">
+            <div class="requests-list" id="requestsList"></div>
+            <div class="request-details" id="requestDetails">
+                <div class="details-card">
+                    <h3>Select a request to view details</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadWebhooks() {
+            const webhookId = document.getElementById("webhookSelect").value;
+            const response = await fetch(`/webhook/${webhookId}`);
+            const data = await response.json();
+            const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            const requestsList = document.getElementById("requestsList");
+            const requestDetails = document.getElementById("requestDetails");
+
+            requestsList.innerHTML = "";
+            requestDetails.innerHTML = '<div class="details-card"><h3>Select a request to view details</h3></div>';
+
+            sortedData.forEach((request, index) => {
+                const listItem = document.createElement("div");
+                listItem.classList.add("request-item");
+                listItem.innerText = new Date(request.timestamp).toLocaleString();
+                listItem.addEventListener("click", () => displayDetails(request));
+                requestsList.appendChild(listItem);
+            });
+        }
+
+        async function addWebhook() {
+            const newWebhookId = document.getElementById("newWebhookId").value.trim();
+            if (!newWebhookId) {
+                alert("Webhook ID cannot be empty!");
+                return;
+            }
+
+            const response = await fetch("/add_webhook", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ webhook_id: newWebhookId })
+            });
+
+            if (response.ok) {
+                alert("Webhook added successfully!");
+                location.reload();
+            } else {
+                alert("Error adding webhook.");
+            }
+        }
+
+        function displayDetails(request) {
+            document.getElementById("requestDetails").innerHTML = `
+                <div class="details-card">
+                    <h3>Request Details</h3>
+                    <p><strong>Method:</strong> ${request.method}</p>
+                    <p><strong>Timestamp:</strong> ${new Date(request.timestamp).toLocaleString()}</p>
+                    <p><strong>Headers:</strong></p>
+                    <table class="headers-table">${Object.entries(JSON.parse(request.headers || "{}")).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+                    <p><strong>Body:</strong></p>
+                    <pre class="pretty-json">${JSON.stringify(JSON.parse(request.body || "{}"), null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        function toggleMode() {
+            document.body.classList.toggle("dark-mode");
+        }
+    </script>
+</body>
+</html>
