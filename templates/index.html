@@ -39,6 +39,7 @@
             color: var(--text-color);
             transition: all 0.3s;
         }
+
         .header {
             padding: 15px;
             background-color: var(--header-bg);
@@ -46,14 +47,16 @@
             text-align: center;
             font-size: 20px;
         }
+
         .container {
-            max-width: 1000px;
+            max-width: 100%;
             margin: 20px auto;
             background: var(--container-bg);
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .controls {
             display: flex;
             flex-wrap: wrap;
@@ -61,28 +64,33 @@
             align-items: center;
             margin-bottom: 15px;
         }
-        select, input, button {
+
+        select, button, input {
             padding: 10px;
             font-size: 16px;
             border-radius: 5px;
             border: 1px solid var(--border-color);
         }
+
         button {
             background-color: var(--button-bg);
             color: white;
             cursor: pointer;
             border: none;
         }
+
         button:hover {
             background-color: var(--button-hover);
         }
+
         .requests-container {
             display: flex;
             flex-direction: row;
             gap: 10px;
         }
+
         .requests-list {
-            width: 35%;
+            width: 20%; /* Further narrowed */
             border-right: 1px solid var(--border-color);
             overflow-y: auto;
             max-height: 500px;
@@ -90,40 +98,31 @@
             padding: 10px;
             border-radius: 5px;
         }
+
         .request-details {
-            width: 65%;
+            width: 75%;
             padding: 10px;
         }
+
         .request-item {
             padding: 10px;
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             transition: background 0.2s;
         }
+
         .request-item:hover, .request-item.active {
             background-color: var(--json-bg);
             font-weight: bold;
         }
+
         .details-card {
             background: var(--card-bg);
             padding: 15px;
             border-radius: 5px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-        .headers-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        .headers-table th, .headers-table td {
-            border: 1px solid var(--border-color);
-            padding: 8px;
-            text-align: left;
-        }
-        .headers-table th {
-            background-color: var(--json-bg);
-        }
+
         pre.pretty-json {
             background: var(--json-bg);
             padding: 10px;
@@ -133,18 +132,28 @@
             white-space: pre-wrap;
             word-wrap: break-word;
         }
-        .toggle-mode {
-            background-color: #222;
-            border: none;
-            cursor: pointer;
-            padding: 10px;
-            color: white;
-            margin-left: auto;
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--json-bg);
+        }
+
         @media (max-width: 768px) {
             .requests-container {
                 flex-direction: column;
             }
+
             .requests-list, .request-details {
                 width: 100%;
             }
@@ -154,23 +163,26 @@
 <body>
     <div class="header">
         <h1>Webhook Viewer</h1>
-        <button class="toggle-mode" onclick="toggleMode()">🌙 Dark Mode</button>
+        <div class="refresh-controls">
+            <button class="toggle-mode" onclick="toggleMode()">🌙 Dark Mode</button>
+            <label for="refreshTime">Refresh (seconds):</label>
+            <select id="refreshTime">
+                <option value="off">Off</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="30">30</option>
+                <option value="60">60</option>
+            </select>
+        </div>
     </div>
     <div class="container">
         <div class="controls">
             <label><strong>Select Webhook:</strong></label>
-            <select id="webhookSelect">
+            <select id="webhookSelect" onchange="loadWebhooks()">
                 {% for id in webhook_ids %}
                     <option value="{{ id }}">{{ id }}</option>
                 {% endfor %}
             </select>
-            <button onclick="loadWebhooks()">Load</button>
-        </div>
-
-        <div class="controls">
-            <label><strong>Add New Webhook:</strong></label>
-            <input type="text" id="newWebhookId" placeholder="Enter Webhook ID">
-            <button onclick="addWebhook()">Add</button>
         </div>
 
         <div class="requests-container">
@@ -184,6 +196,8 @@
     </div>
 
     <script>
+        let refreshInterval = null;
+
         async function loadWebhooks() {
             const webhookId = document.getElementById("webhookSelect").value;
             const response = await fetch(`/webhook/${webhookId}`);
@@ -191,10 +205,7 @@
             const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             const requestsList = document.getElementById("requestsList");
-            const requestDetails = document.getElementById("requestDetails");
-
             requestsList.innerHTML = "";
-            requestDetails.innerHTML = '<div class="details-card"><h3>Select a request to view details</h3></div>';
 
             sortedData.forEach((request, index) => {
                 const listItem = document.createElement("div");
@@ -202,28 +213,11 @@
                 listItem.innerText = new Date(request.timestamp).toLocaleString();
                 listItem.addEventListener("click", () => displayDetails(request));
                 requestsList.appendChild(listItem);
+
+                if (index === 0) {
+                    displayDetails(request); // Show the latest request by default
+                }
             });
-        }
-
-        async function addWebhook() {
-            const newWebhookId = document.getElementById("newWebhookId").value.trim();
-            if (!newWebhookId) {
-                alert("Webhook ID cannot be empty!");
-                return;
-            }
-
-            const response = await fetch("/add_webhook", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ webhook_id: newWebhookId })
-            });
-
-            if (response.ok) {
-                alert("Webhook added successfully!");
-                location.reload();
-            } else {
-                alert("Error adding webhook.");
-            }
         }
 
         function displayDetails(request) {
@@ -232,17 +226,54 @@
                     <h3>Request Details</h3>
                     <p><strong>Method:</strong> ${request.method}</p>
                     <p><strong>Timestamp:</strong> ${new Date(request.timestamp).toLocaleString()}</p>
-                    <p><strong>Headers:</strong></p>
-                    <table class="headers-table">${Object.entries(JSON.parse(request.headers || "{}")).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
                     <p><strong>Body:</strong></p>
                     <pre class="pretty-json">${JSON.stringify(JSON.parse(request.body || "{}"), null, 2)}</pre>
+                    <p><strong>Headers:</strong></p>
+                    <table>
+                        <thead>
+                            <tr><th>Header</th><th>Value</th></tr>
+                        </thead>
+                        <tbody>
+                            ${Object.entries(JSON.parse(request.headers || "{}"))
+                                .map(([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`)
+                                .join("")}
+                        </tbody>
+                    </table>
                 </div>
             `;
         }
 
         function toggleMode() {
             document.body.classList.toggle("dark-mode");
+            const isDarkMode = document.body.classList.contains("dark-mode");
+            localStorage.setItem("darkMode", isDarkMode ? "enabled" : "disabled");
         }
+
+        function setupAutoRefresh() {
+            const refreshSelect = document.getElementById("refreshTime");
+
+            refreshSelect.addEventListener("change", () => {
+                clearInterval(refreshInterval);
+
+                const value = refreshSelect.value;
+                if (value !== "off") {
+                    refreshInterval = setInterval(loadWebhooks, parseInt(value) * 1000);
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const darkMode = localStorage.getItem("darkMode");
+            if (darkMode === "enabled") {
+                document.body.classList.add("dark-mode");
+            }
+
+            setupAutoRefresh();
+
+            const webhookSelect = document.getElementById("webhookSelect");
+            webhookSelect.selectedIndex = webhookSelect.options.length - 1; // Select the last webhook by default
+            loadWebhooks();
+        });
     </script>
 </body>
 </html>
