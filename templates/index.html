@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webhook Viewer</title>
+    <!-- Prism.js Theme -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <style>
         :root {
             --bg-color: #f4f4f9;
@@ -90,7 +92,7 @@
         }
 
         .requests-list {
-            width: 20%; /* Further narrowed */
+            width: 20%;
             border-right: 1px solid var(--border-color);
             overflow-y: auto;
             max-height: 500px;
@@ -168,6 +170,7 @@
             <label for="refreshTime">Refresh (seconds):</label>
             <select id="refreshTime">
                 <option value="off">Off</option>
+                <option value="2">2</option>
                 <option value="5">5</option>
                 <option value="10">10</option>
                 <option value="30">30</option>
@@ -195,6 +198,9 @@
         </div>
     </div>
 
+    <!-- Prism.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <script>
         let refreshInterval = null;
 
@@ -202,32 +208,30 @@
             const webhookId = document.getElementById("webhookSelect").value;
             const response = await fetch(`/webhook/${webhookId}`);
             const data = await response.json();
-            const sortedData = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             const requestsList = document.getElementById("requestsList");
             requestsList.innerHTML = "";
 
-            sortedData.forEach((request, index) => {
+            data.forEach((request) => {
                 const listItem = document.createElement("div");
                 listItem.classList.add("request-item");
                 listItem.innerText = new Date(request.timestamp).toLocaleString();
                 listItem.addEventListener("click", () => displayDetails(request));
                 requestsList.appendChild(listItem);
-
-                if (index === 0) {
-                    displayDetails(request); // Show the latest request by default
-                }
             });
         }
 
         function displayDetails(request) {
+            const formattedJson = JSON.stringify(JSON.parse(request.body || "{}"), null, 2);
+            const highlightedJson = Prism.highlight(formattedJson, Prism.languages.json, "json");
+
             document.getElementById("requestDetails").innerHTML = `
                 <div class="details-card">
                     <h3>Request Details</h3>
                     <p><strong>Method:</strong> ${request.method}</p>
                     <p><strong>Timestamp:</strong> ${new Date(request.timestamp).toLocaleString()}</p>
                     <p><strong>Body:</strong></p>
-                    <pre class="pretty-json">${JSON.stringify(JSON.parse(request.body || "{}"), null, 2)}</pre>
+                    <pre class="pretty-json language-json">${highlightedJson}</pre>
                     <p><strong>Headers:</strong></p>
                     <table>
                         <thead>
@@ -269,10 +273,6 @@
             }
 
             setupAutoRefresh();
-
-            const webhookSelect = document.getElementById("webhookSelect");
-            webhookSelect.selectedIndex = webhookSelect.options.length - 1; // Select the last webhook by default
-            loadWebhooks();
         });
     </script>
 </body>
