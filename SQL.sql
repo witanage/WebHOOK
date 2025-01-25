@@ -2,9 +2,11 @@ SELECT * FROM webhook_responses ORDER BY 1 DESC;
 
 SELECT * FROM users ORDER BY 1 DESC;
 
-SELECT * FROM webhooks ORDER BY 1 DESC;
-
 SHOW Tables;
+
+-- ALTER TABLE webhook_responses
+ADD COLUMN user_id INT NOT NULL;
+
 
 -- DROP TABLE webhooks;
 

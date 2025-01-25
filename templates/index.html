@@ -47,7 +47,8 @@
             background-color: var(--header-bg);
             color: var(--header-text);
             text-align: center;
-            font-size: 20px;
+            font-size: 10px;
+            max-height: 40px;
         }
 
         .container {
@@ -123,6 +124,22 @@
             padding: 15px;
             border-radius: 5px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            max-height: 1000px; /* Set a fixed height */
+            overflow: auto; /* Enable scrolling for overflow content */
+        }
+
+        .refresh-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .refresh-controls .toggle-mode {
+            margin-left: 0; /* Align to the left */
+        }
+
+        .refresh-controls .logout {
+            margin-right: 0; /* Align to the right */
         }
 
         pre.pretty-json {
@@ -163,117 +180,122 @@
     </style>
 </head>
 <body>
-    <div class="header">
+<div class="header">
+    <div class="refresh-controls">
+        <button class="toggle-mode" onclick="toggleMode()">Dark Mode</button>
         <h1>Webhook Viewer</h1>
-        <div class="refresh-controls">
-            <button class="toggle-mode" onclick="toggleMode()">🌙 Dark Mode</button>
-            <label for="refreshTime">Refresh (seconds):</label>
-            <select id="refreshTime">
-                <option value="off">Off</option>
-                <option value="2">2</option>
-                <option value="5">5</option>
-                <option value="10">10</option>
-                <option value="30">30</option>
-                <option value="60">60</option>
-            </select>
-        </div>
+        <button onclick="logout()">Logout</button>
     </div>
-    <div class="container">
-        <div class="controls">
-            <label><strong>Select Webhook:</strong></label>
-            <select id="webhookSelect" onchange="loadWebhooks()">
-                {% for id in webhook_ids %}
-                    <option value="{{ id }}">{{ id }}</option>
-                {% endfor %}
-            </select>
-        </div>
+</div>
+<div class="container">
+    <div class="controls">
+        <label><strong>Select Webhook:</strong></label>
+        <select id="webhookSelect" onchange="loadWebhooks()">
+            {% for id in webhook_ids %}
+            <option value="{{ id }}">{{ id }}</option>
+            {% endfor %}
+        </select>
+        <button onclick="loadWebhooks()">Refresh</button>
+        <select id="refreshTime">
+            <option value="off">Off</option>
+            <option value="2">2</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="30">30</option>
+            <option value="60">60</option>
+        </select>
+    </div>
 
-        <div class="requests-container">
-            <div class="requests-list" id="requestsList"></div>
-            <div class="request-details" id="requestDetails">
-                <div class="details-card">
-                    <h3>Select a request to view details</h3>
-                </div>
+    <div class="requests-container">
+        <div class="requests-list" id="requestsList"></div>
+        <div class="request-details" id="requestDetails">
+            <div class="details-card">
+                <h3>Select a request to view details</h3>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Prism.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
-    <script>
-        let refreshInterval = null;
+<!-- Prism.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script>
+    let refreshInterval = null;
 
-        async function loadWebhooks() {
-            const webhookId = document.getElementById("webhookSelect").value;
-            const response = await fetch(`/webhook/${webhookId}`);
-            const data = await response.json();
+    async function loadWebhooks() {
+        const webhookId = document.getElementById("webhookSelect").value;
+        const response = await fetch(`/webhook/${webhookId}`);
+        const data = await response.json();
 
-            const requestsList = document.getElementById("requestsList");
-            requestsList.innerHTML = "";
+        const requestsList = document.getElementById("requestsList");
+        requestsList.innerHTML = "";
 
-            data.forEach((request) => {
-                const listItem = document.createElement("div");
-                listItem.classList.add("request-item");
-                listItem.innerText = new Date(request.timestamp).toLocaleString();
-                listItem.addEventListener("click", () => displayDetails(request));
-                requestsList.appendChild(listItem);
-            });
-        }
-
-        function displayDetails(request) {
-            const formattedJson = JSON.stringify(JSON.parse(request.body || "{}"), null, 2);
-            const highlightedJson = Prism.highlight(formattedJson, Prism.languages.json, "json");
-
-            document.getElementById("requestDetails").innerHTML = `
-                <div class="details-card">
-                    <h3>Request Details</h3>
-                    <p><strong>Method:</strong> ${request.method}</p>
-                    <p><strong>Timestamp:</strong> ${new Date(request.timestamp).toLocaleString()}</p>
-                    <p><strong>Body:</strong></p>
-                    <pre class="pretty-json language-json">${highlightedJson}</pre>
-                    <p><strong>Headers:</strong></p>
-                    <table>
-                        <thead>
-                            <tr><th>Header</th><th>Value</th></tr>
-                        </thead>
-                        <tbody>
-                            ${Object.entries(JSON.parse(request.headers || "{}"))
-                                .map(([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`)
-                                .join("")}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-
-        function toggleMode() {
-            document.body.classList.toggle("dark-mode");
-            const isDarkMode = document.body.classList.contains("dark-mode");
-            localStorage.setItem("darkMode", isDarkMode ? "enabled" : "disabled");
-        }
-
-        function setupAutoRefresh() {
-            const refreshSelect = document.getElementById("refreshTime");
-
-            refreshSelect.addEventListener("change", () => {
-                clearInterval(refreshInterval);
-
-                const value = refreshSelect.value;
-                if (value !== "off") {
-                    refreshInterval = setInterval(loadWebhooks, parseInt(value) * 1000);
-                }
-            });
-        }
-
-        document.addEventListener("DOMContentLoaded", () => {
-            const darkMode = localStorage.getItem("darkMode");
-            if (darkMode === "enabled") {
-                document.body.classList.add("dark-mode");
-            }
-
-            setupAutoRefresh();
+        data.forEach((request) => {
+            const listItem = document.createElement("div");
+            listItem.classList.add("request-item");
+            listItem.innerText = new Date(request.timestamp).toLocaleString();
+            listItem.addEventListener("click", () => displayDetails(request));
+            requestsList.appendChild(listItem);
         });
-    </script>
+    }
+
+    function logout() {
+        window.location.href = "/logout";
+    }
+
+    function displayDetails(request) {
+        const formattedJson = JSON.stringify(JSON.parse(request.body || "{}"), null, 2);
+        const highlightedJson = Prism.highlight(formattedJson, Prism.languages.json, "json");
+
+        document.getElementById("requestDetails").innerHTML = `
+            <div class="details-card">
+                <h3>Request Details</h3>
+                <p><strong>Method:</strong> ${request.method}</p>
+                <p><strong>Timestamp:</strong> ${new Date(request.timestamp).toLocaleString()}</p>
+                <p><strong>Body:</strong></p>
+                <pre class="pretty-json language-json">${highlightedJson}</pre>
+                <p><strong>Headers:</strong></p>
+                <table>
+                    <thead>
+                        <tr><th>Header</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(JSON.parse(request.headers || "{}"))
+                            .map(([key, value]) => `<tr><td>${key}</td><td>${value}</td></tr>`)
+                            .join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    function toggleMode() {
+        document.body.classList.toggle("dark-mode");
+        const isDarkMode = document.body.classList.contains("dark-mode");
+        localStorage.setItem("darkMode", isDarkMode ? "enabled" : "disabled");
+    }
+
+    function setupAutoRefresh() {
+        const refreshSelect = document.getElementById("refreshTime");
+
+        refreshSelect.addEventListener("change", () => {
+            clearInterval(refreshInterval);
+
+            const value = refreshSelect.value;
+            if (value !== "off") {
+                refreshInterval = setInterval(loadWebhooks, parseInt(value) * 1000);
+            }
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const darkMode = localStorage.getItem("darkMode");
+        if (darkMode === "enabled") {
+            document.body.classList.add("dark-mode");
+        }
+
+        setupAutoRefresh();
+    });
+</script>
 </body>
 </html>
