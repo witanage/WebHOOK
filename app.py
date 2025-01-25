@@ -101,17 +101,6 @@ def register():
 
     return render_template("register.html")
 
-# Add a new webhook ID
-@app.route("/add_webhook", methods=["POST"])
-def add_webhook():
-    data = request.json
-    webhook_id = data.get("webhook_id")
-
-    if not webhook_id:
-        return jsonify({"error": "Webhook ID cannot be empty"}), 400
-
-    return jsonify({"message": "Webhook added successfully", "webhook_id": webhook_id})
-
 # Handle Webhooks
 @app.route("/webhook/<webhook_id>", methods=["GET", "POST"])
 def handle_webhook(webhook_id):

@@ -7,6 +7,9 @@ SHOW Tables;
 -- ALTER TABLE webhook_responses
 ADD COLUMN user_id INT NOT NULL;
 
+-- ALTER TABLE webhook_responses
+DROP COLUMN user_id;
+
 
 -- DROP TABLE webhooks;
 
