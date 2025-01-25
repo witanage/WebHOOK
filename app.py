@@ -20,6 +20,7 @@ db_config = {
     # "port": 3307
 }
 
+
 # User Authentication - Login
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -51,17 +52,20 @@ def login():
 
     return render_template("login.html")
 
+
 # User Logout
 @app.route("/logout")
 def logout():
     session.pop("user_id", None)
     return redirect(url_for("login"))
 
-# Dashboard - Webhook Viewer (Protected)
+
 @app.route("/dashboard")
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
+
+    user_id = session["user_id"]
 
     # Fetch available webhook IDs
     try:
@@ -76,7 +80,8 @@ def dashboard():
             cursor.close()
             conn.close()
 
-    return render_template("index.html", webhook_ids=webhook_ids)
+    return render_template("index.html", webhook_ids=webhook_ids, user_id=user_id)
+
 
 # User Registration - Only for Admins (For Testing Purposes)
 @app.route("/register", methods=["GET", "POST"])
@@ -101,23 +106,35 @@ def register():
 
     return render_template("register.html")
 
-# Handle Webhooks
-@app.route("/webhook/<webhook_id>", methods=["GET", "POST"])
-def handle_webhook(webhook_id):
-    if request.method == "POST":
-        method = request.method
-        headers = dict(request.headers)
-        body = request.get_json(silent=True) or request.data.decode("utf-8")
-        query_params = request.args.to_dict()
 
+@app.route("/webhook/<user_id>/<webhook_id>", methods=["GET", "POST"])
+def handle_webhook(user_id, webhook_id):
+    if request.method == "POST":
+        # Validate if the user exists
         try:
             conn = mysql.connector.connect(**db_config)
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
+
+            # Check if the user exists
+            cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+            user = cursor.fetchone()
+            if not user:
+                return jsonify({"error": "User does not exist"}), 404
+
+            # Process the webhook data
+            method = request.method
+            headers = dict(request.headers)
+            body = request.get_json(silent=True) or request.data.decode("utf-8")
+            query_params = request.args.to_dict()
+
+            # Store the webhook response in the database
             cursor.execute("""
-                INSERT INTO webhook_responses (webhook_id, method, headers, body, query_params, timestamp)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (webhook_id, method, json.dumps(headers), json.dumps(body), json.dumps(query_params), datetime.utcnow()))
+                INSERT INTO webhook_responses (user_id, webhook_id, method, headers, body, query_params, timestamp)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (user_id, webhook_id, method, json.dumps(headers), json.dumps(body), json.dumps(query_params),
+                  datetime.utcnow()))
             conn.commit()
+
         except mysql.connector.Error as err:
             return jsonify({"error": str(err)}), 500
         finally:
@@ -134,9 +151,9 @@ def handle_webhook(webhook_id):
             cursor.execute("""
                 SELECT id, method, headers, body, query_params, timestamp
                 FROM webhook_responses
-                WHERE webhook_id = %s
+                WHERE user_id = %s AND webhook_id = %s
                 ORDER BY timestamp DESC
-            """, (webhook_id,))
+            """, (user_id, webhook_id))
             data = cursor.fetchall()
         except mysql.connector.Error as err:
             return jsonify({"error": str(err)}), 500
@@ -146,6 +163,7 @@ def handle_webhook(webhook_id):
                 conn.close()
 
         return jsonify(data), 200
+
 
 if __name__ == "__main__":
     app.run(debug=False)
