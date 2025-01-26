@@ -78,7 +78,7 @@
         }
 
         .request-details {
-            width: 80%;
+            width: 84%;
             height: 100%;
         }
 
@@ -121,6 +121,11 @@
             margin-right: 0;
         }
 
+        .refreshIndicator{
+            height: 30px;
+            max-width: 400px;
+        }
+
         pre.pretty-json {
             background: #444;
             padding: 10px;
@@ -153,19 +158,16 @@
             .requests-container {
                 flex-direction: column;
             }
-
-            .requests-list, .request-details {
-                width: 100%;
-                height: 100%;
-            }
         }
     </style>
 </head>
 <body>
 <div class="header">
+
+    <!--             style="height: 30px; max-width: 400px;"-->
     <div class="refresh-controls">
-        <img id="refreshIndicator" src="{{ url_for('static', filename='normal.gif') }}" alt="Status Indicator"
-             style="height: 40px; max-width: 500px;">
+        <img id="refreshIndicator" class="refreshIndicator" src="{{ url_for('static', filename='normal.gif') }}"
+             alt="Status Indicator">
         <button onclick="logout()">Logout</button>
     </div>
 </div>
@@ -345,6 +347,7 @@
             requestsList.appendChild(listItem);
         });
     }
+
 
     function setupAutoRefresh() {
         const refreshSelect = document.getElementById("refreshTime");
