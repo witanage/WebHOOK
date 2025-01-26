@@ -231,34 +231,6 @@
 <script>
     let refreshInterval = null;
 
-    async function refreshRequests() {
-        try {
-            const response = await fetch('/refresh-requests', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (response.ok) {
-                const requests = await response.json();
-                const requestsList = document.querySelector('.requests-list');
-                requestsList.innerHTML = ''; // Clear the current list
-
-                // Populate the list with updated requests
-                requests.forEach(request => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = `Request ID: ${request.id}, Status: ${request.status}`;
-                    requestsList.appendChild(listItem);
-                });
-            } else {
-                console.error('Failed to fetch updated requests');
-            }
-        } catch (error) {
-            console.error('Error refreshing requests:', error);
-        }
-    }
-
     async function loadWebhooks() {
         const userId = "{{ user_id }}";  // Get the current user's ID from the Flask template
         const webhookId = document.getElementById("webhookSelect").value;
