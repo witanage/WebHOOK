@@ -191,7 +191,7 @@
 <div class="header">
     <div class="refresh-controls">
         <button class="toggle-mode" onclick="toggleMode()">Dark Mode</button>
-        <h1>Webhook Viewer</h1>
+        <img id="refreshIndicator" src="{{ url_for('static', filename='normal.gif') }}" alt="Status Indicator" style="height: 40px; max-width: 500px;">
         <button onclick="logout()">Logout</button>
     </div>
 </div>
@@ -321,18 +321,27 @@
         localStorage.setItem("darkMode", isDarkMode ? "enabled" : "disabled");
     }
 
+
     function setupAutoRefresh() {
         const refreshSelect = document.getElementById("refreshTime");
+        const refreshIndicator = document.getElementById("refreshIndicator");
 
         refreshSelect.addEventListener("change", () => {
             clearInterval(refreshInterval);
 
             const value = refreshSelect.value;
             if (value !== "off") {
+                // Switch to animated.gif when refresh is enabled
+                refreshIndicator.src = "static/animated.gif";
+
                 refreshInterval = setInterval(loadWebhooks, parseInt(value) * 1000);
+            } else {
+                // Switch back to normal.gif when refresh is off
+                refreshIndicator.src = "static/normal.gif";
             }
         });
     }
+
 
     document.addEventListener("DOMContentLoaded", () => {
         const darkMode = localStorage.getItem("darkMode");
