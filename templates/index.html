@@ -7,45 +7,19 @@
     <!-- Prism.js Theme -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #f4f4f9;
-            --text-color: #333;
-            --container-bg: white;
-            --header-bg: #333;
-            --header-text: white;
-            --button-bg: #007BFF;
-            --button-hover: #0056b3;
-            --card-bg: #f9f9f9;
-            --json-bg: #eaeaea;
-            --border-color: #ddd;
-        }
-
-        body.dark-mode {
-            --bg-color: #222;
-            --text-color: #eee;
-            --container-bg: #333;
-            --header-bg: #000;
-            --header-text: white;
-            --button-bg: #444;
-            --button-hover: #666;
-            --card-bg: #555;
-            --json-bg: #444;
-            --border-color: #666;
-        }
-
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: #222;
+            color: #eee;
             transition: all 0.3s;
         }
 
         .header {
             padding: 15px;
-            background-color: var(--header-bg);
-            color: var(--header-text);
+            background-color: #000;
+            color: white;
             text-align: center;
             font-size: 10px;
             max-height: 40px;
@@ -55,10 +29,10 @@
             max-width: 100%;
             max-height: 20%;
             margin: 20px auto;
-            background: var(--container-bg);
+            background: #333;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
         }
 
         .controls {
@@ -73,18 +47,18 @@
             padding: 10px;
             font-size: 16px;
             border-radius: 5px;
-            border: 1px solid var(--border-color);
+            background-color: #444;
+            color: white;
+            border: 1px solid #666;
         }
 
         button {
-            background-color: var(--button-bg);
-            color: white;
             cursor: pointer;
             border: none;
         }
 
         button:hover {
-            background-color: var(--button-hover);
+            background-color: #666;
         }
 
         .requests-container {
@@ -95,10 +69,10 @@
 
         .requests-list {
             width: 20%;
-            border-right: 1px solid var(--border-color);
+            border-right: 1px solid #666;
             overflow-y: auto;
             max-height: 500px;
-            background: var(--card-bg);
+            background: #555;
             padding: 10px;
             border-radius: 5px;
         }
@@ -110,27 +84,27 @@
 
         .request-item {
             padding: 10px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid #666;
             cursor: pointer;
             transition: background 0.2s;
         }
 
         .wide-select {
-            width: 500px; /* Example width */
+            width: 500px;
         }
 
         .request-item:hover, .request-item.active {
-            background-color: var(--json-bg);
+            background-color: #444;
             font-weight: bold;
         }
 
         .details-card {
-            background: var(--card-bg);
+            background: #555;
             padding: 15px;
             border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            max-height: 550px; /* Set a fixed height */
-            overflow: auto; /* Enable scrolling for overflow content */
+            box-shadow: 0 1px 3px rgba(255, 255, 255, 0.1);
+            max-height: 550px;
+            overflow: auto;
         }
 
         .align-right {
@@ -143,22 +117,19 @@
             align-items: center;
         }
 
-        .refresh-controls .toggle-mode {
-            margin-left: 0; /* Align to the left */
-        }
-
         .refresh-controls .logout {
-            margin-right: 0; /* Align to the right */
+            margin-right: 0;
         }
 
         pre.pretty-json {
-            background: var(--json-bg);
+            background: #444;
             padding: 10px;
             border-radius: 5px;
             font-family: monospace;
             font-size: 14px;
             white-space: pre-wrap;
             word-wrap: break-word;
+            color: #0f0;
         }
 
         table {
@@ -170,11 +141,12 @@
         th, td {
             text-align: left;
             padding: 8px;
-            border: 1px solid var(--border-color);
+            border: 1px solid #666;
+            color: #eee;
         }
 
         th {
-            background-color: var(--json-bg);
+            background-color: #444;
         }
 
         @media (max-width: 768px) {
@@ -192,7 +164,6 @@
 <body>
 <div class="header">
     <div class="refresh-controls">
-        <button class="toggle-mode" onclick="toggleMode()">Dark Mode</button>
         <img id="refreshIndicator" src="{{ url_for('static', filename='normal.gif') }}" alt="Status Indicator"
              style="height: 40px; max-width: 500px;">
         <button onclick="logout()">Logout</button>
@@ -232,41 +203,14 @@
 <script>
     let refreshInterval = null;
 
-    async function loadWebhooks() {
-        const userId = "{{ user_id }}";  // Get the current user's ID from the Flask template
-        const webhookId = document.getElementById("webhookSelect").value;
-        const response = await fetch(`/webhook/${userId}/${webhookId}`);
-        const data = await response.json();
-
-        const requestsList = document.getElementById("requestsList");
-        requestsList.innerHTML = "";
-
-        data.forEach((request) => {
-            const listItem = document.createElement("div");
-            listItem.classList.add("request-item");
-            listItem.innerText = new Date(request.timestamp).toLocaleString();
-
-            if (request.is_read === 0) {
-                listItem.style.fontWeight = "bold"; // Highlight unread requests
-                listItem.style.backgroundColor = "#000"; // Example styling
-            }
-
-            listItem.addEventListener("click", () => displayDetails(request));
-            requestsList.appendChild(listItem);
-        });
-    }
-
-
     function logout() {
         window.location.href = "/logout";
     }
-
 
     function displayDetails(request) {
         const formattedJson = JSON.stringify(JSON.parse(request.body || "{}"), null, 2);
         const highlightedJson = Prism.highlight(formattedJson, Prism.languages.json, "json");
 
-        // Create the details card dynamically
         const detailsContainer = document.getElementById("requestDetails");
         detailsContainer.innerHTML = `
             <div class="details-card">
@@ -292,37 +236,26 @@
             </div>
         `;
 
-    // Mark the request as read in the backend
-    fetch(`/mark_as_read/${request.id}`, { method: "POST" });
+        fetch(`/mark_as_read/${request.id}`, { method: "POST" });
 
-    // Attach an event listener to the "Copy JSON" button
-    const copyButton = detailsContainer.querySelector(".copy-json-btn");
-    copyButton.addEventListener("click", () => {
-        copyJson(formattedJson);
-        const originalText = copyButton.textContent;
-        copyButton.textContent = " Copied";
-        copyButton.disabled = true;
-        setTimeout(() => {
-            copyButton.textContent = originalText;
-            copyButton.disabled = false;
-        }, 2000);
-    });
-}
-
+        const copyButton = detailsContainer.querySelector(".copy-json-btn");
+        copyButton.addEventListener("click", () => {
+            copyJson(formattedJson);
+            const originalText = copyButton.textContent;
+            copyButton.textContent = " Copied";
+            copyButton.disabled = true;
+            setTimeout(() => {
+                copyButton.textContent = originalText;
+                copyButton.disabled = false;
+            }, 2000);
+        });
+    }
 
     function copyJson(jsonString) {
         navigator.clipboard.writeText(jsonString).catch(err => {
             console.error("Failed to copy: ", err);
         });
     }
-
-
-    function toggleMode() {
-        document.body.classList.toggle("dark-mode");
-        const isDarkMode = document.body.classList.contains("dark-mode");
-        localStorage.setItem("darkMode", isDarkMode ? "enabled" : "disabled");
-    }
-
 
     function setupAutoRefresh() {
         const refreshSelect = document.getElementById("refreshTime");
@@ -333,25 +266,109 @@
 
             const value = refreshSelect.value;
             if (value !== "off") {
-                // Switch to animated.gif when refresh is enabled
                 refreshIndicator.src = "static/animated.gif";
-
                 refreshInterval = setInterval(loadWebhooks, parseInt(value) * 1000);
             } else {
-                // Switch back to normal.gif when refresh is off
                 refreshIndicator.src = "static/normal.gif";
             }
         });
     }
 
+    async function loadInitialRequest() {
+        const userId = "{{ user_id }}";
+        const webhookSelect = document.getElementById("webhookSelect");
+        const webhookId = webhookSelect.value;
 
-    document.addEventListener("DOMContentLoaded", () => {
-        const darkMode = localStorage.getItem("darkMode");
-        if (darkMode === "enabled") {
-            document.body.classList.add("dark-mode");
+        try {
+            const response = await fetch(`/webhook/${userId}/${webhookId}`);
+            const data = await response.json();
+
+            if (data.length > 0) {
+                // Sort requests by timestamp in descending order to get the latest
+                const sortedRequests = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                const latestRequest = sortedRequests[0];
+
+                // Populate the requests list
+                const requestsList = document.getElementById("requestsList");
+                requestsList.innerHTML = "";
+                data.forEach((request) => {
+                    const listItem = document.createElement("div");
+                    listItem.classList.add("request-item");
+                    listItem.innerText = new Date(request.timestamp).toLocaleString();
+
+                    if (request.is_read === 0) {
+                        listItem.style.fontWeight = "bold";
+                        listItem.style.backgroundColor = "#000";
+                    }
+
+                    listItem.addEventListener("click", () => displayDetails(request));
+                    requestsList.appendChild(listItem);
+                });
+
+                // Automatically display the latest request details
+                displayDetails(latestRequest);
+            }
+        } catch (error) {
+            console.error("Error loading initial request:", error);
+            // Optionally, show a user-friendly error message in the UI
+            const requestDetails = document.getElementById("requestDetails");
+            requestDetails.innerHTML = `
+                <div class="details-card">
+                    <h3>Error Loading Requests</h3>
+                    <p>Unable to load webhook requests. Please try again later.</p>
+                </div>
+            `;
         }
+    }
 
+    async function loadWebhooks() {
+        // Existing refresh functionality remains unchanged
+        const userId = "{{ user_id }}";
+        const webhookId = document.getElementById("webhookSelect").value;
+        const response = await fetch(`/webhook/${userId}/${webhookId}`);
+        const data = await response.json();
+
+        const requestsList = document.getElementById("requestsList");
+        requestsList.innerHTML = "";
+
+        data.forEach((request) => {
+            const listItem = document.createElement("div");
+            listItem.classList.add("request-item");
+            listItem.innerText = new Date(request.timestamp).toLocaleString();
+
+            if (request.is_read === 0) {
+                listItem.style.fontWeight = "bold";
+                listItem.style.backgroundColor = "#000";
+            }
+
+            listItem.addEventListener("click", () => displayDetails(request));
+            requestsList.appendChild(listItem);
+        });
+    }
+
+    function setupAutoRefresh() {
+        const refreshSelect = document.getElementById("refreshTime");
+        const refreshIndicator = document.getElementById("refreshIndicator");
+
+        refreshSelect.addEventListener("change", () => {
+            clearInterval(refreshInterval);
+
+            const value = refreshSelect.value;
+            if (value !== "off") {
+                refreshIndicator.src = "static/animated.gif";
+                refreshInterval = setInterval(loadWebhooks, parseInt(value) * 1000);
+            } else {
+                refreshIndicator.src = "static/normal.gif";
+            }
+        });
+    }
+
+<!--    document.addEventListener("DOMContentLoaded", () => {-->
+<!--        setupAutoRefresh();-->
+<!--    });-->
+    document.addEventListener("DOMContentLoaded", () => {
         setupAutoRefresh();
+        loadInitialRequest(); // Load the initial request when dashboard is first accessed
     });
 </script>
 </body>
