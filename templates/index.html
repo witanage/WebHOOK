@@ -163,8 +163,6 @@
 </head>
 <body>
 <div class="header">
-
-    <!--             style="height: 30px; max-width: 400px;"-->
     <div class="refresh-controls">
         <img id="refreshIndicator" class="refreshIndicator" src="{{ url_for('static', filename='normal.gif') }}"
              alt="Status Indicator">
@@ -366,9 +364,7 @@
         });
     }
 
-<!--    document.addEventListener("DOMContentLoaded", () => {-->
-<!--        setupAutoRefresh();-->
-<!--    });-->
+
     document.addEventListener("DOMContentLoaded", () => {
         setupAutoRefresh();
         loadInitialRequest(); // Load the initial request when dashboard is first accessed
