@@ -243,14 +243,22 @@
             const listItem = document.createElement("div");
             listItem.classList.add("request-item");
             listItem.innerText = new Date(request.timestamp).toLocaleString();
+
+            if (request.is_read === 0) {
+                listItem.style.fontWeight = "bold"; // Highlight unread requests
+                listItem.style.backgroundColor = "#000"; // Example styling
+            }
+
             listItem.addEventListener("click", () => displayDetails(request));
             requestsList.appendChild(listItem);
         });
     }
 
+
     function logout() {
         window.location.href = "/logout";
     }
+
 
     function displayDetails(request) {
         const formattedJson = JSON.stringify(JSON.parse(request.body || "{}"), null, 2);
@@ -265,7 +273,7 @@
                 <p><strong>Timestamp:</strong> ${new Date(request.timestamp).toLocaleString()}</p>
                 <p style="display: flex; justify-content: space-between; align-items: center;">
                     <strong>Body:</strong>
-                    <button class="align-right copy-json-btn">Copy JSON</button>
+                    <button class="align-right copy-json-btn">&nbsp;Copy&nbsp;&nbsp;</button>
                 </p>
                 <pre class="pretty-json language-json">${highlightedJson}</pre>
                 <p><strong>Headers:</strong></p>
@@ -282,23 +290,23 @@
             </div>
         `;
 
-        // Attach an event listener to the "Copy JSON" button
-        const copyButton = detailsContainer.querySelector(".copy-json-btn");
+    // Mark the request as read in the backend
+    fetch(`/mark_as_read/${request.id}`, { method: "POST" });
 
-        copyButton.addEventListener("click", () => {
-            copyJson(formattedJson);
-            // Temporarily change button text to "Copied"
-            const originalText = copyButton.textContent;
-            copyButton.textContent = "Copied";
-            copyButton.disabled = true; // Disable the button briefly for better UX
+    // Attach an event listener to the "Copy JSON" button
+    const copyButton = detailsContainer.querySelector(".copy-json-btn");
+    copyButton.addEventListener("click", () => {
+        copyJson(formattedJson);
+        const originalText = copyButton.textContent;
+        copyButton.textContent = " Copied";
+        copyButton.disabled = true;
+        setTimeout(() => {
+            copyButton.textContent = originalText;
+            copyButton.disabled = false;
+        }, 2000);
+    });
+}
 
-            // Restore the original text after 2 seconds
-            setTimeout(() => {
-                copyButton.textContent = originalText;
-                copyButton.disabled = false;
-            }, 2000);
-        });
-    }
 
     function copyJson(jsonString) {
         navigator.clipboard.writeText(jsonString).catch(err => {

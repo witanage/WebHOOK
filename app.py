@@ -21,7 +21,6 @@ db_config = {
 }
 
 
-# User Authentication - Login
 @app.route("/", methods=["GET", "POST"])
 def login():
     if "user_id" in session:
@@ -37,11 +36,17 @@ def login():
             cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
             user = cursor.fetchone()
 
-            if user and bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
-                session["user_id"] = user["id"]
-                return redirect(url_for("dashboard"))
-            else:
-                return render_template("login.html", error="Invalid username or password")
+            if user:
+                # Check if the user is enabled
+                if user.get("status") == 0:  # Assuming 0 means disabled
+                    return render_template("login.html", error="Your account is disabled. Please contact support.")
+
+                # Check the password
+                if bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
+                    session["user_id"] = user["id"]
+                    return redirect(url_for("dashboard"))
+
+            return render_template("login.html", error="Invalid username or password")
 
         except mysql.connector.Error as err:
             return jsonify({"error": str(err)}), 500
@@ -94,7 +99,8 @@ def register():
         try:
             conn = mysql.connector.connect(**db_config)
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (username, hashed_password))
+            cursor.execute("INSERT INTO users (username, password_hash, status) VALUES (%s, %s, 0)",
+                           (username, hashed_password))
             conn.commit()
             return redirect(url_for("login"))
         except mysql.connector.Error as err:
@@ -105,6 +111,30 @@ def register():
                 conn.close()
 
     return render_template("register.html")
+
+
+@app.route("/mark_as_read/<int:request_id>", methods=["POST"])
+def mark_as_read(request_id):
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE webhook_responses
+            SET is_read = 1
+            WHERE id = %s AND user_id = %s
+        """, (request_id, session["user_id"]))
+        conn.commit()
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+    finally:
+        if conn.is_connected():
+            cursor.close()
+            conn.close()
+
+    return jsonify({"message": "Request marked as read"}), 200
 
 
 @app.route("/webhook/<user_id>/<webhook_id>", methods=["GET", "POST"])
@@ -144,16 +174,36 @@ def handle_webhook(user_id, webhook_id):
 
         return jsonify({"message": "Webhook received and logged successfully"}), 201
 
+        # elif request.method == "GET":
+        #     try:
+        #         conn = mysql.connector.connect(**db_config)
+        #         cursor = conn.cursor(dictionary=True)
+        #         cursor.execute("""
+        #             SELECT id, method, headers, body, query_params, timestamp
+        #             FROM webhook_responses
+        #             WHERE user_id = %s AND webhook_id = %s
+        #             ORDER BY timestamp DESC
+        #         """, (user_id, webhook_id))
+        #         data = cursor.fetchall()
+        #     except mysql.connector.Error as err:
+        #         return jsonify({"error": str(err)}), 500
+        #     finally:
+        #         if conn.is_connected():
+        #             cursor.close()
+        #             conn.close()
+        #
+        #     return jsonify(data), 200
+
     elif request.method == "GET":
         try:
             conn = mysql.connector.connect(**db_config)
             cursor = conn.cursor(dictionary=True)
             cursor.execute("""
-                SELECT id, method, headers, body, query_params, timestamp
-                FROM webhook_responses
-                WHERE user_id = %s AND webhook_id = %s
-                ORDER BY timestamp DESC
-            """, (user_id, webhook_id))
+                    SELECT id, method, headers, body, query_params, timestamp, is_read
+                    FROM webhook_responses
+                    WHERE user_id = %s AND webhook_id = %s
+                    ORDER BY timestamp DESC
+                """, (user_id, webhook_id))
             data = cursor.fetchall()
         except mysql.connector.Error as err:
             return jsonify({"error": str(err)}), 500

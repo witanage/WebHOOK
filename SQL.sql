@@ -4,11 +4,13 @@ SELECT * FROM users ORDER BY 1 DESC;
 
 SHOW Tables;
 
--- ALTER TABLE webhook_responses
-ADD COLUMN user_id INT NOT NULL;
+-- ALTER TABLE webhook_responses ADD COLUMN user_id INT NOT NULL;
 
--- ALTER TABLE webhook_responses
-DROP COLUMN user_id;
+-- ALTER TABLE webhook_responses DROP COLUMN user_id;
+
+-- ALTER TABLE users ADD COLUMN status TINYINT(1) DEFAULT 1;
+
+-- ALTER TABLE webhook_responses ADD COLUMN is_read TINYINT(1) DEFAULT 0;
 
 
 -- DROP TABLE webhooks;
