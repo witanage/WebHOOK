@@ -174,26 +174,6 @@ def handle_webhook(user_id, webhook_id):
 
         return jsonify({"message": "Webhook received and logged successfully"}), 201
 
-        # elif request.method == "GET":
-        #     try:
-        #         conn = mysql.connector.connect(**db_config)
-        #         cursor = conn.cursor(dictionary=True)
-        #         cursor.execute("""
-        #             SELECT id, method, headers, body, query_params, timestamp
-        #             FROM webhook_responses
-        #             WHERE user_id = %s AND webhook_id = %s
-        #             ORDER BY timestamp DESC
-        #         """, (user_id, webhook_id))
-        #         data = cursor.fetchall()
-        #     except mysql.connector.Error as err:
-        #         return jsonify({"error": str(err)}), 500
-        #     finally:
-        #         if conn.is_connected():
-        #             cursor.close()
-        #             conn.close()
-        #
-        #     return jsonify(data), 200
-
     elif request.method == "GET":
         try:
             conn = mysql.connector.connect(**db_config)
