@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session, url_for
 import mysql.connector
 import bcrypt
 import json
 from datetime import datetime
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key_here"
@@ -19,6 +20,14 @@ db_config = {
     # "database": "cwwebhook_soldlabor",
     # "port": 3307
 }
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -60,12 +69,14 @@ def login():
 
 # User Logout
 @app.route("/logout")
+@login_required
 def logout():
     session.pop("user_id", None)
     return redirect(url_for("login"))
 
 
 @app.route("/dashboard")
+@login_required
 def dashboard():
     if "user_id" not in session:
         return redirect(url_for("login"))
@@ -114,6 +125,7 @@ def register():
 
 
 @app.route("/mark_as_read/<int:request_id>", methods=["POST"])
+@login_required
 def mark_as_read(request_id):
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
