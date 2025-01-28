@@ -209,6 +209,7 @@
         window.location.href = "/logout";
     }
 
+
     function displayDetails(request) {
         const formattedJson = JSON.stringify(JSON.parse(request.body || "{}"), null, 2);
         const highlightedJson = Prism.highlight(formattedJson, Prism.languages.json, "json");
@@ -253,11 +254,13 @@
         });
     }
 
+
     function copyJson(jsonString) {
         navigator.clipboard.writeText(jsonString).catch(err => {
             console.error("Failed to copy: ", err);
         });
     }
+
 
     function setupAutoRefresh() {
         const refreshSelect = document.getElementById("refreshTime");
@@ -275,6 +278,7 @@
             }
         });
     }
+
 
     async function loadInitialRequest() {
         const userId = "{{ user_id }}";
@@ -322,6 +326,7 @@
             `;
         }
     }
+
 
     async function loadWebhooks() {
         // Existing refresh functionality remains unchanged
