@@ -164,8 +164,10 @@
 <body>
 <div class="header">
     <div class="refresh-controls">
-        <img id="refreshIndicator" class="refreshIndicator" src="{{ url_for('static', filename='normal.gif') }}"
-             alt="Status Indicator">
+        <a href="http://127.0.0.1:5000/">
+            <img id="refreshIndicator" class="refreshIndicator" src="{{ url_for('static', filename='normal.gif') }}"
+                 alt="Status Indicator">
+        </a>
         <button onclick="logout()">Logout</button>
     </div>
 </div>
