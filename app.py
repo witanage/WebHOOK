@@ -13,7 +13,7 @@ db_config = {
     # "host": "localhost",
     # "user": "root",
     # "password": "",
-    # "database": "cwwebhook"
+    # "database": "cwwebhook"s
 
     "host": "9rrab.h.filess.io",
     "user": "cwwebhook_soldlabor",
