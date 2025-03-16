@@ -14,18 +14,6 @@ db_config = {
     "user": "root",
     "password": "",
     "database": "cwwebhook"
-
-    # "host": "9rrab.h.filess.io",
-    # "user": "cwwebhook_soldlabor",
-    # "password": "6fdcfe8d9023f7b1765e39ec7d04d6dc3199b220",
-    # "database": "cwwebhook_soldlabor",
-    # "port": 3307
-
-    # "host": "sql100.infinityfree.com",
-    # "user": "if0_38181636",
-    # "password": "EytWNSSXI3J0y",
-    # "database": "if0_38181636_cwwebhook",
-    # "port": 3306
 }
 
 
