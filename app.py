@@ -13,7 +13,7 @@ db_config = {
     "host": "localhost",
     "user": "root",
     "password": "",
-    "database": "cwwebhook"
+    "database": "ac_webhook"
 }
 
 
@@ -84,7 +84,7 @@ def dashboard():
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT webhook_id FROM webhook_responses")
+        cursor.execute("SELECT DISTINCT webhook_id FROM webhook_responses WHERE user_id = %s",(user_id,))
         webhook_ids = [row[0] for row in cursor.fetchall()]
     except mysql.connector.Error as err:
         return jsonify({"error": str(err)}), 500
